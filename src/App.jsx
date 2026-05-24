@@ -195,11 +195,15 @@ export default function App() {
             </div>
 
             <div className="form-group">
-              <label>Petugas</label>
-              <select name="collected_by_id" value={form.collected_by_id} onChange={handleInputChange} required>
-                <option value="">Pilih Petugas</option>
-                {collectors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <label>Nama Petugas</label>
+              <input 
+                type="text" 
+                name="collected_by_id" 
+                value={form.collected_by_id} 
+                onChange={handleInputChange} 
+                required 
+                placeholder="Tulis nama petugas..." 
+              />
             </div>
 
             <div className="form-group">
