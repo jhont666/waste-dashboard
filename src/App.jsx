@@ -77,10 +77,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="header">
-        <div>
-          <h1>♻️ Dashboard Sampah</h1>
-          <p>Karang Taruna Sukabumi</p>
+       <div className="header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/logo.png" alt="Logo KT" style={{ height: '50px', width: 'auto' }} />
+          <div>
+            <h1>Dashboard Pengelolaan Sampah</h1>
+            <p>Karang Taruna Unit 05 Subang Jaya</p>
+          </div>
         </div>
         <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Admin: Fadhil</div>
       </div>
