@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 // Ganti dengan URL Worker kamu
-const API_URL = 'https://waste-collection-worker.mochfadhil510.workers.dev';
+const API_URL = 'https://waste-collection-worker.jhont3371.workers.dev';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
