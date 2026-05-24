@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 // Ganti dengan URL Worker kamu
 const API_URL = 'https://waste-collection-worker.jhont3371.workers.dev';
+
+// Warna-warna untuk Grafik
+const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -17,9 +21,6 @@ export default function App() {
   const wasteTypes = [
     { id: 'wt1', name: 'Organik' }, { id: 'wt2', name: 'Plastik' }, { id: 'wt3', name: 'Kertas' }
   ];
-  const collectors = [
-    { id: 'u2', name: 'Budi' }, { id: 'u3', name: 'Siti' }
-  ];
 
   useEffect(() => {
     fetchData();
@@ -31,8 +32,6 @@ export default function App() {
       setError(null);
       const res = await fetch(`${API_URL}/api/collections`);
       const data = await res.json();
-      
-      // Perbaikan: Cek format data dari Worker
       if (data.results) {
         setCollections(data.results);
       } else if (Array.isArray(data)) {
@@ -42,7 +41,7 @@ export default function App() {
       }
     } catch (err) {
       console.error("Gagal memuat data:", err);
-      setError("Gagal terhubung ke server API. Pastikan Worker sudah di-deploy dan URL sudah benar.");
+      setError("Gagal terhubung ke server API.");
     } finally {
       setLoading(false);
     }
@@ -72,12 +71,32 @@ export default function App() {
     }
   };
 
+  // ================= MENGHITUNG DATA UNTUK GRAFIK =================
+  
+  // 1. Data untuk Pie Chart (Distribusi Tipe Sampah)
+  const wasteTypeData = wasteTypes.map(type => {
+    const totalKg = collections
+      .filter(c => (c.waste_type_name || c.waste_type_id) === type.name && c.unit === 'kg')
+      .reduce((sum, c) => sum + Number(c.quantity), 0);
+    return { name: type.name, value: totalKg };
+  }).filter(d => d.value > 0); // Hanya tampilkan yang ada datanya
+
+  // 2. Data untuk Bar Chart (Sampah per Lokasi)
+  const locationData = locations.map(loc => {
+    const totalKg = collections
+      .filter(c => (c.location_name || c.location_id) === loc.name && c.unit === 'kg')
+      .reduce((sum, c) => sum + Number(c.quantity), 0);
+    return { name: loc.name, kg: totalKg };
+  }).filter(d => d.kg > 0);
+
+  // =================================================================
+
   const totalKg = collections.reduce((acc, c) => acc + (c.unit === 'kg' ? Number(c.quantity) : 0), 0);
   const totalEntries = collections.length;
 
   return (
     <div className="app">
-       <div className="header">
+      <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src="/logo.png" alt="Logo KT" style={{ height: '50px', width: 'auto' }} />
           <div>
@@ -114,18 +133,39 @@ export default function App() {
           
           {error && <div className="card" style={{ color: 'red' }}>{error}</div>}
 
-          <div className="card">
-            <h2>Distribusi Sampah</h2>
-            {loading ? <div className="loading">Memuat data...</div> : (
-              collections.length === 0 ? <p>Belum ada data</p> : (
-                <ul>
-                  {collections.map((c) => (
-                    <li key={c.id}>{c.location_name || c.location_id} - {c.waste_type_name || c.waste_type_id} ({c.quantity} {c.unit})</li>
-                  ))}
-                </ul>
-              )
-            )}
+          {/* KONTAINER GRAFIK */}
+          <div className="charts-grid">
+            <div className="card">
+              <h2>Distribusi Jenis Sampah</h2>
+              {loading ? <div className="loading">Memuat...</div> : wasteTypeData.length === 0 ? <p>Belum ada data</p> : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={wasteTypeData} cx="50%" cy="50%" outerRadius={80} fill="#8884d8" dataKey="value" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
+                      {wasteTypeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            <div className="card">
+              <h2>Jumlah Sampah per Lokasi (Kg)</h2>
+              {loading ? <div className="loading">Memuat...</div> : locationData.length === 0 ? <p>Belum ada data</p> : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={locationData}>
+                    <XAxis dataKey="name" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip />
+                    <Bar dataKey="kg" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
           </div>
+
         </>
       )}
 
@@ -199,14 +239,7 @@ export default function App() {
 
             <div className="form-group">
               <label>Nama Petugas</label>
-              <input 
-                type="text" 
-                name="collected_by_id" 
-                value={form.collected_by_id} 
-                onChange={handleInputChange} 
-                required 
-                placeholder="Tulis nama petugas..." 
-              />
+              <input type="text" name="collected_by_id" value={form.collected_by_id} onChange={handleInputChange} required placeholder="Tulis nama petugas..." />
             </div>
 
             <div className="form-group">
