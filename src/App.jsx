@@ -21,12 +21,25 @@ export default function App() {
   const [toast, setToast] = useState(''); // State untuk pesan pop-up
 
   const locations = [
-    { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'RT 03' }, { id: 'loc4', name: 'RT 04' }, { id: 'loc5', name: 'RT 05' },
-    { id: 'loc6', name: 'RT 06' }, { id: 'loc7', name: 'RT 07' }, { id: 'loc8', name: 'RT 08' }, { id: 'loc9', name: 'RT 09' }
+    { id: 'loc1', name: 'RT 01' },
+    { id: 'loc2', name: 'RT 02' },
+    { id: 'loc3', name: 'RT 03' },
+    { id: 'loc4', name: 'RT 04' },
+    { id: 'loc5', name: 'RT 05' },
+    { id: 'loc6', name: 'RT 06' },
+    { id: 'loc7', name: 'RT 07' },
+    { id: 'loc8', name: 'RT 08' },
+    { id: 'loc9', name: 'RT 09' },
+    { id: 'loc10', name: 'Area Taman' }
   ];
+
   const wasteTypes = [
-    { id: 'wt1', name: 'Organik', 1 }, { id: 'wt2', name: 'Anorganik', 0 }, { id: 'wt3', name: 'Kertas', 0 }, { id: 'wt4', name: 'Sampah Residu', 0 }, { id: 'wt5', name: 'Kardus', 1 }
-  ];
+    { id: 'wt1', name: 'Organik' },
+    { id: 'wt2', name: 'Anorganik' },
+    { id: 'wt3', name: 'Kertas' },
+    { id: 'wt4', name: 'Sampah Residu' },
+    { id: 'wt5', name: 'Kardus' }
+];
 
   useEffect(() => {
     fetchData();
