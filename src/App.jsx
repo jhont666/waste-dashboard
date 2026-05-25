@@ -14,13 +14,15 @@ export default function App() {
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
   
-  // State untuk Filter
+  // State untuk Filter & Toast
   const [filterLocation, setFilterLocation] = useState('');
   const [filterWasteType, setFilterWasteType] = useState('');
   const [filterDate, setFilterDate] = useState('');
+  const [toast, setToast] = useState(''); // State untuk pesan pop-up
 
   const locations = [
-    { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'Area Taman' }
+    { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'RT 03' }, { id: 'loc4', name: 'RT 04' }, { id: 'loc5', name: 'RT 05' },
+    { id: 'loc6', name: 'RT 06' }, { id: 'loc7', name: 'RT 07' }, { id: 'loc8', name: 'RT 08' }, { id: 'loc9', name: 'RT 09' }
   ];
   const wasteTypes = [
     { id: 'wt1', name: 'Organik' }, { id: 'wt2', name: 'Plastik' }, { id: 'wt3', name: 'Kertas' }
@@ -29,6 +31,12 @@ export default function App() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Fungsi untuk memunculkan Toast
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(''), 3000); // Hilang setelah 3 detik
+  };
 
   const fetchData = async () => {
     try {
@@ -64,15 +72,53 @@ export default function App() {
         body: JSON.stringify(form)
       });
       if (res.ok) {
-        alert('Data berhasil disimpan!');
+        showToast('✅ Data berhasil disimpan!'); // Ganti alert dengan Toast
         setForm({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
         fetchData();
       } else {
-        alert('Gagal menyimpan data');
+        showToast('❌ Gagal menyimpan data');
       }
     } catch (err) {
-      alert('Error koneksi ke server');
+      showToast('❌ Error koneksi ke server');
     }
+  };
+
+  // ================= FUNGSI EXPORT EXCEL (CSV) =================
+  const handleExportCSV = () => {
+    if (filteredCollections.length === 0) {
+      showToast('❌ Tidak ada data untuk di-export');
+      return;
+    }
+
+    // Header kolom
+    const headers = ['Tanggal', 'Lokasi', 'Tipe Sampah', 'Jumlah', 'Satuan', 'Petugas', 'Catatan'];
+    
+    // Ubah data jadi baris CSV
+    const csvRows = filteredCollections.map(c => {
+      return [
+        c.collection_date,
+        c.location_name || c.location_id,
+        c.waste_type_name || c.waste_type_id,
+        c.quantity,
+        c.unit,
+        c.collector_name || c.collected_by_id,
+        c.notes || ''
+      ].join(';'); // Pakai titik koma agar Excel Indonesia bisa baca kolomnya
+    });
+
+    // Gabungkan header dan baris
+    const csvContent = [headers.join(';'), ...csvRows].join('\n');
+
+    // Buat file dan download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Laporan_Sampah_KT05_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    showToast('📥 File Excel berhasil diunduh!');
   };
 
   // ================= MENGHITUNG DATA UNTUK GRAFIK =================
@@ -95,7 +141,6 @@ export default function App() {
     const matchLocation = filterLocation ? (c.location_name || c.location_id) === filterLocation : true;
     const matchWasteType = filterWasteType ? (c.waste_type_name || c.waste_type_id) === filterWasteType : true;
     const matchDate = filterDate ? c.collection_date === filterDate : true;
-    
     return matchLocation && matchWasteType && matchDate;
   });
 
@@ -104,6 +149,9 @@ export default function App() {
 
   return (
     <div className="app">
+      {/* KOMPONEN TOAST */}
+      {toast && <div className="toast">{toast}</div>}
+
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src="/logo.png" alt="Logo KT" style={{ height: '50px', width: 'auto' }} />
@@ -175,10 +223,13 @@ export default function App() {
         </>
       )}
 
-      {/* ENTRIES TAB (DENGAN FILTER) */}
+      {/* ENTRIES TAB (DENGAN FILTER & EXPORT) */}
       {activeTab === 'entries' && (
         <div className="card">
-          <h2>Riwayat Pengumpulan</h2>
+          <div className="entries-header">
+            <h2>Riwayat Pengumpulan</h2>
+            <button className="btn btn-primary" onClick={handleExportCSV}>📥 Export Excel</button>
+          </div>
           
           {/* UI FILTER */}
           <div className="filter-grid">
