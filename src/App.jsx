@@ -29,9 +29,8 @@ export default function App() {
     { id: 'loc6', name: 'RT 06' },
     { id: 'loc7', name: 'RT 07' },
     { id: 'loc8', name: 'RT 08' },
-    { id: 'loc9', name: 'RT 09' },
-    { id: 'loc10', name: 'Area Taman' }
-  ];
+    { id: 'loc9', name: 'RT 09' }
+ ];
 
   const wasteTypes = [
     { id: 'wt1', name: 'Organik' },
@@ -258,7 +257,7 @@ export default function App() {
             
             <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
             
-            <button className="btn btn-danger" onClick={() => { setFilterLocation(''); setFilterWasteType(''); setFilterDate(''); }}>Reset</button>
+            <button className="btn btn-danger" onClick={() => { setFilterLocation(''); setFilterWasteType(''); setFilterDate(''); fetchData(); }}>🔄 Reset & Refresh</button>
           </div>
 
           {loading ? <div className="loading">Memuat data...</div> : (
