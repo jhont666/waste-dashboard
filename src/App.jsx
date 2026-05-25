@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 // Ganti dengan URL Worker kamu
 const API_URL = 'https://waste-collection-worker.jhont3371.workers.dev';
 
-// Warna-warna untuk Grafik
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
 export default function App() {
@@ -15,6 +14,11 @@ export default function App() {
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
   
+  // State untuk Filter
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterWasteType, setFilterWasteType] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+
   const locations = [
     { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'Area Taman' }
   ];
@@ -72,16 +76,13 @@ export default function App() {
   };
 
   // ================= MENGHITUNG DATA UNTUK GRAFIK =================
-  
-  // 1. Data untuk Pie Chart (Distribusi Tipe Sampah)
   const wasteTypeData = wasteTypes.map(type => {
     const totalKg = collections
       .filter(c => (c.waste_type_name || c.waste_type_id) === type.name && c.unit === 'kg')
       .reduce((sum, c) => sum + Number(c.quantity), 0);
     return { name: type.name, value: totalKg };
-  }).filter(d => d.value > 0); // Hanya tampilkan yang ada datanya
+  }).filter(d => d.value > 0);
 
-  // 2. Data untuk Bar Chart (Sampah per Lokasi)
   const locationData = locations.map(loc => {
     const totalKg = collections
       .filter(c => (c.location_name || c.location_id) === loc.name && c.unit === 'kg')
@@ -89,7 +90,14 @@ export default function App() {
     return { name: loc.name, kg: totalKg };
   }).filter(d => d.kg > 0);
 
-  // =================================================================
+  // ================= LOGIKA FILTER DATA TABEL =================
+  const filteredCollections = collections.filter(c => {
+    const matchLocation = filterLocation ? (c.location_name || c.location_id) === filterLocation : true;
+    const matchWasteType = filterWasteType ? (c.waste_type_name || c.waste_type_id) === filterWasteType : true;
+    const matchDate = filterDate ? c.collection_date === filterDate : true;
+    
+    return matchLocation && matchWasteType && matchDate;
+  });
 
   const totalKg = collections.reduce((acc, c) => acc + (c.unit === 'kg' ? Number(c.quantity) : 0), 0);
   const totalEntries = collections.length;
@@ -133,7 +141,6 @@ export default function App() {
           
           {error && <div className="card" style={{ color: 'red' }}>{error}</div>}
 
-          {/* KONTAINER GRAFIK */}
           <div className="charts-grid">
             <div className="card">
               <h2>Distribusi Jenis Sampah</h2>
@@ -165,14 +172,31 @@ export default function App() {
               )}
             </div>
           </div>
-
         </>
       )}
 
-      {/* ENTRIES TAB */}
+      {/* ENTRIES TAB (DENGAN FILTER) */}
       {activeTab === 'entries' && (
         <div className="card">
           <h2>Riwayat Pengumpulan</h2>
+          
+          {/* UI FILTER */}
+          <div className="filter-grid">
+            <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
+              <option value="">Semua Lokasi</option>
+              {locations.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
+            </select>
+            
+            <select value={filterWasteType} onChange={(e) => setFilterWasteType(e.target.value)}>
+              <option value="">Semua Tipe</option>
+              {wasteTypes.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
+            </select>
+            
+            <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+            
+            <button className="btn btn-danger" onClick={() => { setFilterLocation(''); setFilterWasteType(''); setFilterDate(''); }}>Reset</button>
+          </div>
+
           {loading ? <div className="loading">Memuat data...</div> : (
             <div style={{ overflowX: 'auto' }}>
               <table>
@@ -186,15 +210,19 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {collections.map((c) => (
-                    <tr key={c.id}>
-                      <td>{c.collection_date}</td>
-                      <td>{c.location_name || c.location_id}</td>
-                      <td>{c.waste_type_name || c.waste_type_id}</td>
-                      <td>{c.quantity} {c.unit}</td>
-                      <td>{c.collector_name || c.collected_by_id}</td>
-                    </tr>
-                  ))}
+                  {filteredCollections.length === 0 ? (
+                    <tr><td colSpan="5" style={{textAlign: 'center'}}>Tidak ada data ditemukan</td></tr>
+                  ) : (
+                    filteredCollections.map((c) => (
+                      <tr key={c.id}>
+                        <td>{c.collection_date}</td>
+                        <td>{c.location_name || c.location_id}</td>
+                        <td>{c.waste_type_name || c.waste_type_id}</td>
+                        <td>{c.quantity} {c.unit}</td>
+                        <td>{c.collector_name || c.collected_by_id}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
