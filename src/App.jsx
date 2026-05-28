@@ -193,11 +193,7 @@ export default function App() {
                 </ResponsiveContainer>
               )}
             </div>
-          </div>
-        </>
-      )}
-            {/* GRAFIK VOLUME BARU */}
-            <div className="card">
+          <div className="card">
               <h2>Jumlah Sampah per Lokasi (Karung/Bag/Bucket)</h2>
               {loading ? <div className="loading">Memuat...</div> : locationVolumeData.length === 0 ? <p>Belum ada data volume</p> : (
                 <ResponsiveContainer width="100%" height={250}>
@@ -205,11 +201,15 @@ export default function App() {
                     <XAxis dataKey="name" stroke="#6b7280" />
                     <YAxis stroke="#6b7280" />
                     <Tooltip />
-                    <Bar dataKey="volume" fill="#3b82f6" radius={[4, 4, 0, 0]} /> {/* Warna Biru agar beda dengan Kg */}
+                    <Bar dataKey="volume" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
             </div>
+          </div>
+        </>
+      )}
+           
       {/* ENTRIES TAB (KOLOM GABUNGAN) */}
       {activeTab === 'entries' && (
         <div className="card">
