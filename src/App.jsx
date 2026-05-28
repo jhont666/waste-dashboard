@@ -103,7 +103,14 @@ export default function App() {
       .reduce((sum, c) => sum + Number(c.quantity), 0);
     return { name: loc.name, kg: totalKg };
   }).filter(d => d.kg > 0);
-  // =================================================================
+
+    // Grafik Kedua: Khusus Volume (Karung/Bucket/Bag)
+  const locationVolumeData = locations.map(loc => {
+    const totalVol = collections
+      .filter(c => (c.location_name || c.location_id) === loc.name && c.unit !== 'kg')
+      .reduce((sum, c) => sum + Number(c.quantity), 0);
+    return { name: loc.name, volume: totalVol };
+  }).filter(d => d.volume > 0);
 
   const filteredCollections = collections.filter(c => {
     const matchLocation = filterLocation ? (c.location_name || c.location_id) === filterLocation : true;
@@ -189,7 +196,20 @@ export default function App() {
           </div>
         </>
       )}
-
+            {/* GRAFIK VOLUME BARU */}
+            <div className="card">
+              <h2>Jumlah Sampah per Lokasi (Karung/Bag/Bucket)</h2>
+              {loading ? <div className="loading">Memuat...</div> : locationVolumeData.length === 0 ? <p>Belum ada data volume</p> : (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={locationVolumeData}>
+                    <XAxis dataKey="name" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip />
+                    <Bar dataKey="volume" fill="#3b82f6" radius={[4, 4, 0, 0]} /> {/* Warna Biru agar beda dengan Kg */}
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
       {/* ENTRIES TAB (KOLOM GABUNGAN) */}
       {activeTab === 'entries' && (
         <div className="card">
