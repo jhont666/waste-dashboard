@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Ganti dengan URL Worker kamu
 const API_URL = 'https://waste-collection-worker.jhont3371.workers.dev';
-
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
 export default function App() {
@@ -14,66 +12,45 @@ export default function App() {
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
   
-  // State untuk Filter & Toast
   const [filterLocation, setFilterLocation] = useState('');
   const [filterWasteType, setFilterWasteType] = useState('');
   const [filterDate, setFilterDate] = useState('');
-  const [toast, setToast] = useState(''); // State untuk pesan pop-up
+  const [toast, setToast] = useState('');
 
   const locations = [
-    { id: 'loc1', name: 'RT 01' },
-    { id: 'loc2', name: 'RT 02' },
-    { id: 'loc3', name: 'RT 03' },
-    { id: 'loc4', name: 'RT 04' },
-    { id: 'loc5', name: 'RT 05' },
-    { id: 'loc6', name: 'RT 06' },
-    { id: 'loc7', name: 'RT 07' },
-    { id: 'loc8', name: 'RT 08' },
-    { id: 'loc9', name: 'RT 09' }
- ];
+    { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'RT 03' },
+    { id: 'loc4', name: 'RT 04' }, { id: 'loc5', name: 'RT 05' }, { id: 'loc6', name: 'RT 06' },
+    { id: 'loc7', name: 'RT 07' }, { id: 'loc8', name: 'RT 08' }, { id: 'loc9', name: 'RT 09' }
+  ];
 
   const wasteTypes = [
-    { id: 'wt1', name: 'Organik' },
-    { id: 'wt2', name: 'Anorganik' },
-    { id: 'wt3', name: 'Kertas' },
-    { id: 'wt4', name: 'Sampah Residu' },
-    { id: 'wt5', name: 'Kardus' }
-];
+    { id: 'wt1', name: 'Organik' }, { id: 'wt2', name: 'Anorganik' }, { id: 'wt3', name: 'Kertas' },
+    { id: 'wt4', name: 'Sampah Residu' }, { id: 'wt5', name: 'Kardus' }
+  ];
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  // Fungsi untuk memunculkan Toast
   const showToast = (message) => {
     setToast(message);
-    setTimeout(() => setToast(''), 3000); // Hilang setelah 3 detik
+    setTimeout(() => setToast(''), 3000);
   };
 
   const fetchData = async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true); setError(null);
       const res = await fetch(`${API_URL}/api/collections`);
       const data = await res.json();
-      if (data.results) {
-        setCollections(data.results);
-      } else if (Array.isArray(data)) {
-        setCollections(data);
-      } else {
-        setCollections([]);
-      }
+      if (data.results) setCollections(data.results);
+      else if (Array.isArray(data)) setCollections(data);
+      else setCollections([]);
     } catch (err) {
-      console.error("Gagal memuat data:", err);
       setError("Gagal terhubung ke server API.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleInputChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,44 +61,18 @@ export default function App() {
         body: JSON.stringify(form)
       });
       if (res.ok) {
-        showToast('✅ Data berhasil disimpan!'); // Ganti alert dengan Toast
+        showToast('✅ Data berhasil disimpan!');
         setForm({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
         fetchData();
-      } else {
-        showToast('❌ Gagal menyimpan data');
-      }
-    } catch (err) {
-      showToast('❌ Error koneksi ke server');
-    }
+      } else { showToast('❌ Gagal menyimpan data'); }
+    } catch (err) { showToast('❌ Error koneksi'); }
   };
 
-  // ================= FUNGSI EXPORT EXCEL (CSV) =================
   const handleExportCSV = () => {
-    if (filteredCollections.length === 0) {
-      showToast('❌ Tidak ada data untuk di-export');
-      return;
-    }
-
-    // Header kolom
+    if (filteredCollections.length === 0) { showToast('❌ Tidak ada data untuk di-export'); return; }
     const headers = ['Tanggal', 'Lokasi', 'Tipe Sampah', 'Jumlah', 'Satuan', 'Petugas', 'Catatan'];
-    
-    // Ubah data jadi baris CSV
-    const csvRows = filteredCollections.map(c => {
-      return [
-        c.collection_date,
-        c.location_name || c.location_id,
-        c.waste_type_name || c.waste_type_id,
-        c.quantity,
-        c.unit,
-        c.collector_name || c.collected_by_id,
-        c.notes || ''
-      ].join(';'); // Pakai titik koma agar Excel Indonesia bisa baca kolomnya
-    });
-
-    // Gabungkan header dan baris
+    const csvRows = filteredCollections.map(c => [c.collection_date, c.location_name || c.location_id, c.waste_type_name || c.waste_type_id, c.quantity, c.unit, c.collector_name || c.collected_by_id, c.notes || ''].join(';'));
     const csvContent = [headers.join(';'), ...csvRows].join('\n');
-
-    // Buat file dan download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -129,11 +80,16 @@ export default function App() {
     link.download = `Laporan_Sampah_KT05_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    
     showToast('📥 File Excel berhasil diunduh!');
   };
 
-  // ================= MENGHITUNG DATA UNTUK GRAFIK =================
+  // ================= PERBAIKAN KALKULASI STATISTIK =================
+  const totalKg = collections.filter(c => c.unit === 'kg').reduce((sum, c) => sum + Number(c.quantity), 0);
+  const totalKarung = collections.filter(c => c.unit === 'karung').reduce((sum, c) => sum + Number(c.quantity), 0);
+  const totalBucket = collections.filter(c => c.unit === 'bucket').reduce((sum, c) => sum + Number(c.quantity), 0);
+  const totalEntries = collections.length;
+
+  // Grafik HANYA menghitung Kg untuk perbandingan yang adil
   const wasteTypeData = wasteTypes.map(type => {
     const totalKg = collections
       .filter(c => (c.waste_type_name || c.waste_type_id) === type.name && c.unit === 'kg')
@@ -147,8 +103,8 @@ export default function App() {
       .reduce((sum, c) => sum + Number(c.quantity), 0);
     return { name: loc.name, kg: totalKg };
   }).filter(d => d.kg > 0);
+  // =================================================================
 
-  // ================= LOGIKA FILTER DATA TABEL =================
   const filteredCollections = collections.filter(c => {
     const matchLocation = filterLocation ? (c.location_name || c.location_id) === filterLocation : true;
     const matchWasteType = filterWasteType ? (c.waste_type_name || c.waste_type_id) === filterWasteType : true;
@@ -156,12 +112,8 @@ export default function App() {
     return matchLocation && matchWasteType && matchDate;
   });
 
-  const totalKg = collections.reduce((acc, c) => acc + (c.unit === 'kg' ? Number(c.quantity) : 0), 0);
-  const totalEntries = collections.length;
-
   return (
     <div className="app">
-      {/* KOMPONEN TOAST */}
       {toast && <div className="toast">{toast}</div>}
 
       <div className="header">
@@ -184,18 +136,23 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {activeTab === 'dashboard' && (
         <>
+          {/* KARTU STATISTIK BARU (4 Kartu) */}
           <div className="stats-grid">
             <div className="stat-card">
-              <h3>Total Koleksi (Kg)</h3>
+              <h3>Total Berat (Kg)</h3>
               <div className="value">{totalKg.toFixed(1)}</div>
             </div>
             <div className="stat-card">
-              <h3>Jumlah Entri</h3>
-              <div className="value">{totalEntries}</div>
+              <h3>Total Karung</h3>
+              <div className="value">{totalKarung}</div>
             </div>
             <div className="stat-card">
-              <h3>Lokasi Aktif</h3>
-              <div className="value">{locations.length}</div>
+              <h3>Total Bucket</h3>
+              <div className="value">{totalBucket}</div>
+            </div>
+            <div className="stat-card">
+              <h3>Total Entri</h3>
+              <div className="value">{totalEntries}</div>
             </div>
           </div>
           
@@ -203,14 +160,12 @@ export default function App() {
 
           <div className="charts-grid">
             <div className="card">
-              <h2>Distribusi Jenis Sampah</h2>
-              {loading ? <div className="loading">Memuat...</div> : wasteTypeData.length === 0 ? <p>Belum ada data</p> : (
+              <h2>Distribusi Jenis Sampah (Kg)</h2>
+              {loading ? <div className="loading">Memuat...</div> : wasteTypeData.length === 0 ? <p>Belum ada data (Kg)</p> : (
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
                     <Pie data={wasteTypeData} cx="50%" cy="50%" outerRadius={80} fill="#8884d8" dataKey="value" label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}>
-                      {wasteTypeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
+                      {wasteTypeData.map((entry, index) => ( <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} /> ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
@@ -220,7 +175,7 @@ export default function App() {
 
             <div className="card">
               <h2>Jumlah Sampah per Lokasi (Kg)</h2>
-              {loading ? <div className="loading">Memuat...</div> : locationData.length === 0 ? <p>Belum ada data</p> : (
+              {loading ? <div className="loading">Memuat...</div> : locationData.length === 0 ? <p>Belum ada data (Kg)</p> : (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={locationData}>
                     <XAxis dataKey="name" stroke="#6b7280" />
@@ -235,7 +190,7 @@ export default function App() {
         </>
       )}
 
-      {/* ENTRIES TAB (DENGAN FILTER & EXPORT) */}
+      {/* ENTRIES TAB (KOLOM GABUNGAN) */}
       {activeTab === 'entries' && (
         <div className="card">
           <div className="entries-header">
@@ -243,21 +198,17 @@ export default function App() {
             <button className="btn btn-primary" onClick={handleExportCSV}>📥 Export Excel</button>
           </div>
           
-          {/* UI FILTER */}
           <div className="filter-grid">
             <select value={filterLocation} onChange={(e) => setFilterLocation(e.target.value)}>
               <option value="">Semua Lokasi</option>
               {locations.map(l => <option key={l.id} value={l.name}>{l.name}</option>)}
             </select>
-            
             <select value={filterWasteType} onChange={(e) => setFilterWasteType(e.target.value)}>
               <option value="">Semua Tipe</option>
               {wasteTypes.map(w => <option key={w.id} value={w.name}>{w.name}</option>)}
             </select>
-            
             <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
-            
-            <button className="btn btn-danger" onClick={() => { setFilterLocation(''); setFilterWasteType(''); setFilterDate(''); fetchData(); }}>🔄 Reset & Refresh</button>
+            <button className="btn btn-danger" onClick={() => { setFilterLocation(''); setFilterWasteType(''); setFilterDate(''); fetchData(); }}>🔄 Reset</button>
           </div>
 
           {loading ? <div className="loading">Memuat data...</div> : (
@@ -268,7 +219,8 @@ export default function App() {
                     <th>Tanggal</th>
                     <th>Lokasi</th>
                     <th>Tipe Sampah</th>
-                    <th>Jumlah</th>
+                    {/* KOLOM GABUNGAN JUMLAH + SATUAN */}
+                    <th>Total Kuantitas</th> 
                     <th>Petugas</th>
                   </tr>
                 </thead>
@@ -281,7 +233,7 @@ export default function App() {
                         <td>{c.collection_date}</td>
                         <td>{c.location_name || c.location_id}</td>
                         <td>{c.waste_type_name || c.waste_type_id}</td>
-                        <td>{c.quantity} {c.unit}</td>
+                        <td><strong>{c.quantity} {c.unit}</strong></td>
                         <td>{c.collector_name || c.collected_by_id}</td>
                       </tr>
                     ))
@@ -323,8 +275,8 @@ export default function App() {
               <label>Satuan</label>
               <select name="unit" value={form.unit} onChange={handleInputChange}>
                 <option value="kg">Kg</option>
-                <option value="bucket">Bucket</option>
                 <option value="karung">Karung</option>
+                <option value="bucket">Bucket</option>
               </select>
             </div>
 
