@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
+import ReactMarkdown from 'react-markdown';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const API_URL = 'https://waste-collection-worker.jhont3371.workers.dev';
@@ -237,8 +238,9 @@ export default function App() {
               </div>
               {aiLoading && <div className="loading">AI sedang membaca data...</div>}
               {aiInsight && !aiLoading && (
-                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#374151' }}>
-                  {aiInsight}
+                              {aiInsight && !aiLoading && (
+                <div className="ai-response">
+                  <ReactMarkdown>{aiInsight}</ReactMarkdown>
                 </div>
               )}
             </div>
