@@ -303,4 +303,53 @@ export default function App() {
             
             <div className="form-group">
               <label>Tipe Sampah</label>
-              <div style={{ display: '
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select name="waste_type_id" value={form.waste_type_id} onChange={handleInputChange} required style={{ flex: 1 }}>
+                  <option value="">Pilih Tipe</option>
+                  {wasteTypes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" onChange={handleScanSampah} style={{ display: 'none' }} />
+                <button type="button" className="btn btn-primary" onClick={() => document.getElementById('cameraInput').click()} disabled={scanLoading} style={{ whiteSpace: 'nowrap', padding: '0.6rem' }}>
+                  {scanLoading ? '⏳' : '📸 Scan'}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Jumlah</label>
+              <input type="number" name="quantity" value={form.quantity} onChange={handleInputChange} required min="0" step="0.1" />
+            </div>
+
+            <div className="form-group">
+              <label>Satuan</label>
+              <select name="unit" value={form.unit} onChange={handleInputChange}>
+                <option value="kg">Kg</option>
+                <option value="karung">Karung</option>
+                <option value="bucket">Bucket</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Nama Petugas</label>
+              <input type="text" name="collected_by_id" value={form.collected_by_id} onChange={handleInputChange} required placeholder="Tulis nama petugas..." />
+            </div>
+
+            <div className="form-group">
+              <label>Tanggal</label>
+              <input type="date" name="collection_date" value={form.collection_date} onChange={handleInputChange} required />
+            </div>
+
+            <div className="form-group full">
+              <label>Catatan (Opsional)</label>
+              <textarea name="notes" value={form.notes} onChange={handleInputChange} rows="2" placeholder="Contoh: Sampah menumpuk di selokan"></textarea>
+            </div>
+
+            <div className="form-group full" style={{ marginTop: '0.5rem' }}>
+              <button type="submit" className="btn btn-primary">Simpan Data</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
