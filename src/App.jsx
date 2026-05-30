@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import ReactMarkdown from 'react-markdown';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import ReactMarkdown from 'react-markdown';
 
 const API_URL = 'https://waste-collection-worker.jhont3371.workers.dev';
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -13,7 +13,6 @@ export default function App() {
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
   
-  // State untuk Filter, Toast, dan AI
   const [filterLocation, setFilterLocation] = useState('');
   const [filterWasteType, setFilterWasteType] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -28,20 +27,14 @@ export default function App() {
     { id: 'loc7', name: 'RT 07' }, { id: 'loc8', name: 'RT 08' }, { id: 'loc9', name: 'RT 09' }
   ];
 
-    const wasteTypes = [
-    { id: 'wt1', name: 'Organik' },
-    { id: 'wt2', name: 'Anorganik' },
-    { id: 'wt3', name: 'Kertas' },
-    { id: 'wt4', name: 'Limbah Kain' },
-    { id: 'wt5', name: 'Kardus' }
+  const wasteTypes = [
+    { id: 'wt1', name: 'Organik' }, { id: 'wt2', name: 'Anorganik' }, { id: 'wt3', name: 'Kertas' },
+    { id: 'wt4', name: 'Limbah Kain' }, { id: 'wt5', name: 'Kardus' }
   ];
 
   useEffect(() => { fetchData(); }, []);
 
-  const showToast = (message) => {
-    setToast(message);
-    setTimeout(() => setToast(''), 3000);
-  };
+  const showToast = (message) => { setToast(message); setTimeout(() => setToast(''), 3000); };
 
   const fetchData = async () => {
     try {
@@ -51,11 +44,8 @@ export default function App() {
       if (data.results) setCollections(data.results);
       else if (Array.isArray(data)) setCollections(data);
       else setCollections([]);
-    } catch (err) {
-      setError("Gagal terhubung ke server API.");
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { setError("Gagal terhubung ke server API."); } 
+    finally { setLoading(false); }
   };
 
   const handleInputChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); };
@@ -91,7 +81,6 @@ export default function App() {
     showToast('📥 File Excel berhasil diunduh!');
   };
 
-  // FUNGSI AI INSIGHT
   const fetchAiInsight = async () => {
     try {
       setAiLoading(true); setAiInsight('');
@@ -102,7 +91,6 @@ export default function App() {
     finally { setAiLoading(false); }
   };
 
-  // FUNGSI AI SCAN KAMERA
   const handleScanSampah = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -124,7 +112,6 @@ export default function App() {
     finally { setScanLoading(false); }
   };
 
-  // KALKULASI STATISTIK
   const totalKg = collections.filter(c => c.unit === 'kg').reduce((sum, c) => sum + Number(c.quantity), 0);
   const totalKarung = collections.filter(c => c.unit === 'karung').reduce((sum, c) => sum + Number(c.quantity), 0);
   const totalBucket = collections.filter(c => c.unit === 'bucket').reduce((sum, c) => sum + Number(c.quantity), 0);
@@ -228,7 +215,7 @@ export default function App() {
               )}
             </div>
 
-            {/* KARTU AI INSIGHT */}
+            {/* KARTU AI INSIGHT (SUDAH DIPERBAIKI) */}
             <div className="card" style={{ gridColumn: '1 / -1' }}>
               <div className="entries-header">
                 <h2>🤖 Analisis AI Mingguan</h2>
@@ -238,7 +225,6 @@ export default function App() {
               </div>
               {aiLoading && <div className="loading">AI sedang membaca data...</div>}
               {aiInsight && !aiLoading && (
-                              {aiInsight && !aiLoading && (
                 <div className="ai-response">
                   <ReactMarkdown>{aiInsight}</ReactMarkdown>
                 </div>
@@ -317,53 +303,4 @@ export default function App() {
             
             <div className="form-group">
               <label>Tipe Sampah</label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <select name="waste_type_id" value={form.waste_type_id} onChange={handleInputChange} required style={{ flex: 1 }}>
-                  <option value="">Pilih Tipe</option>
-                  {wasteTypes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" onChange={handleScanSampah} style={{ display: 'none' }} />
-                <button type="button" className="btn btn-primary" onClick={() => document.getElementById('cameraInput').click()} disabled={scanLoading} style={{ whiteSpace: 'nowrap', padding: '0.6rem' }}>
-                  {scanLoading ? '⏳' : '📸 Scan'}
-                </button>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Jumlah</label>
-              <input type="number" name="quantity" value={form.quantity} onChange={handleInputChange} required min="0" step="0.1" />
-            </div>
-
-            <div className="form-group">
-              <label>Satuan</label>
-              <select name="unit" value={form.unit} onChange={handleInputChange}>
-                <option value="kg">Kg</option>
-                <option value="karung">Karung</option>
-                <option value="bucket">Bucket</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Nama Petugas</label>
-              <input type="text" name="collected_by_id" value={form.collected_by_id} onChange={handleInputChange} required placeholder="Tulis nama petugas..." />
-            </div>
-
-            <div className="form-group">
-              <label>Tanggal</label>
-              <input type="date" name="collection_date" value={form.collection_date} onChange={handleInputChange} required />
-            </div>
-
-            <div className="form-group full">
-              <label>Catatan (Opsional)</label>
-              <textarea name="notes" value={form.notes} onChange={handleInputChange} rows="2" placeholder="Contoh: Sampah menumpuk di selokan"></textarea>
-            </div>
-
-            <div className="form-group full" style={{ marginTop: '0.5rem' }}>
-              <button type="submit" className="btn btn-primary">Simpan Data</button>
-            </div>
-          </form>
-        </div>
-      )}
-    </div>
-  );
-}
+              <div style={{ display: '
