@@ -12,12 +12,14 @@ export default function App() {
   const [error, setError] = useState(null);
   const [form, setForm] = useState({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
   
+  // State untuk Filter, Toast, dan AI
   const [filterLocation, setFilterLocation] = useState('');
   const [filterWasteType, setFilterWasteType] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [toast, setToast] = useState('');
-    const [aiInsight, setAiInsight] = useState('');
+  const [aiInsight, setAiInsight] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [scanLoading, setScanLoading] = useState(false);
 
   const locations = [
     { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'RT 03' },
@@ -25,9 +27,12 @@ export default function App() {
     { id: 'loc7', name: 'RT 07' }, { id: 'loc8', name: 'RT 08' }, { id: 'loc9', name: 'RT 09' }
   ];
 
-  const wasteTypes = [
-    { id: 'wt1', name: 'Organik' }, { id: 'wt2', name: 'Anorganik' }, { id: 'wt3', name: 'Kertas' },
-    { id: 'wt4', name: 'Sampah Residu' }, { id: 'wt5', name: 'Kardus' }
+    const wasteTypes = [
+    { id: 'wt1', name: 'Organik' },
+    { id: 'wt2', name: 'Anorganik' },
+    { id: 'wt3', name: 'Kertas' },
+    { id: 'wt4', name: 'Limbah Kain' },
+    { id: 'wt5', name: 'Kardus' }
   ];
 
   useEffect(() => { fetchData(); }, []);
@@ -71,19 +76,6 @@ export default function App() {
   };
 
   const handleExportCSV = () => {
-      const fetchAiInsight = async () => {
-    try {
-      setAiLoading(true);
-      setAiInsight('');
-      const res = await fetch(`${API_URL}/api/ai-insight`);
-      const data = await res.json();
-      setAiInsight(data.insight);
-    } catch (err) {
-      setAiInsight("Gagal menghubungi AI.");
-    } finally {
-      setAiLoading(false);
-    }
-  };
     if (filteredCollections.length === 0) { showToast('❌ Tidak ada data untuk di-export'); return; }
     const headers = ['Tanggal', 'Lokasi', 'Tipe Sampah', 'Jumlah', 'Satuan', 'Petugas', 'Catatan'];
     const csvRows = filteredCollections.map(c => [c.collection_date, c.location_name || c.location_id, c.waste_type_name || c.waste_type_id, c.quantity, c.unit, c.collector_name || c.collected_by_id, c.notes || ''].join(';'));
@@ -98,32 +90,57 @@ export default function App() {
     showToast('📥 File Excel berhasil diunduh!');
   };
 
-  // ================= PERBAIKAN KALKULASI STATISTIK =================
+  // FUNGSI AI INSIGHT
+  const fetchAiInsight = async () => {
+    try {
+      setAiLoading(true); setAiInsight('');
+      const res = await fetch(`${API_URL}/api/ai-insight`);
+      const data = await res.json();
+      setAiInsight(data.insight);
+    } catch (err) { setAiInsight("Gagal menghubungi AI."); } 
+    finally { setAiLoading(false); }
+  };
+
+  // FUNGSI AI SCAN KAMERA
+  const handleScanSampah = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setScanLoading(true);
+      showToast('📸 Menganalisis gambar...');
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await fetch(`${API_URL}/api/ai-scan`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.category && data.category !== "Tidak Terdeteksi") {
+        const matchedType = wasteTypes.find(w => data.category.toLowerCase().includes(w.name.toLowerCase()));
+        if (matchedType) {
+          setForm({ ...form, waste_type_id: matchedType.id });
+          showToast('✅ Tipe sampah terdeteksi: ' + matchedType.name);
+        } else { showToast('⚠️ AI mendeteksi: ' + data.category + ', tapi tidak ada di daftar.'); }
+      } else { showToast('❌ Sampah tidak terdeteksi. Silakan pilih manual.'); }
+    } catch (err) { showToast('❌ Gagal menghubungi AI Vision'); } 
+    finally { setScanLoading(false); }
+  };
+
+  // KALKULASI STATISTIK
   const totalKg = collections.filter(c => c.unit === 'kg').reduce((sum, c) => sum + Number(c.quantity), 0);
   const totalKarung = collections.filter(c => c.unit === 'karung').reduce((sum, c) => sum + Number(c.quantity), 0);
   const totalBucket = collections.filter(c => c.unit === 'bucket').reduce((sum, c) => sum + Number(c.quantity), 0);
   const totalEntries = collections.length;
 
-  // Grafik HANYA menghitung Kg untuk perbandingan yang adil
   const wasteTypeData = wasteTypes.map(type => {
-    const totalKg = collections
-      .filter(c => (c.waste_type_name || c.waste_type_id) === type.name && c.unit === 'kg')
-      .reduce((sum, c) => sum + Number(c.quantity), 0);
+    const totalKg = collections.filter(c => (c.waste_type_name || c.waste_type_id) === type.name && c.unit === 'kg').reduce((sum, c) => sum + Number(c.quantity), 0);
     return { name: type.name, value: totalKg };
   }).filter(d => d.value > 0);
 
   const locationData = locations.map(loc => {
-    const totalKg = collections
-      .filter(c => (c.location_name || c.location_id) === loc.name && c.unit === 'kg')
-      .reduce((sum, c) => sum + Number(c.quantity), 0);
+    const totalKg = collections.filter(c => (c.location_name || c.location_id) === loc.name && c.unit === 'kg').reduce((sum, c) => sum + Number(c.quantity), 0);
     return { name: loc.name, kg: totalKg };
   }).filter(d => d.kg > 0);
 
-    // Grafik Kedua: Khusus Volume (Karung/Bucket/Bag)
   const locationVolumeData = locations.map(loc => {
-    const totalVol = collections
-      .filter(c => (c.location_name || c.location_id) === loc.name && c.unit !== 'kg')
-      .reduce((sum, c) => sum + Number(c.quantity), 0);
+    const totalVol = collections.filter(c => (c.location_name || c.location_id) === loc.name && c.unit !== 'kg').reduce((sum, c) => sum + Number(c.quantity), 0);
     return { name: loc.name, volume: totalVol };
   }).filter(d => d.volume > 0);
 
@@ -158,24 +175,11 @@ export default function App() {
       {/* DASHBOARD TAB */}
       {activeTab === 'dashboard' && (
         <>
-          {/* KARTU STATISTIK BARU (4 Kartu) */}
           <div className="stats-grid">
-            <div className="stat-card">
-              <h3>Total Berat (Kg)</h3>
-              <div className="value">{totalKg.toFixed(1)}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Total Karung</h3>
-              <div className="value">{totalKarung}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Total Bucket</h3>
-              <div className="value">{totalBucket}</div>
-            </div>
-            <div className="stat-card">
-              <h3>Total Entri</h3>
-              <div className="value">{totalEntries}</div>
-            </div>
+            <div className="stat-card"><h3>Total Berat (Kg)</h3><div className="value">{totalKg.toFixed(1)}</div></div>
+            <div className="stat-card"><h3>Total Karung</h3><div className="value">{totalKarung}</div></div>
+            <div className="stat-card"><h3>Total Bucket</h3><div className="value">{totalBucket}</div></div>
+            <div className="stat-card"><h3>Total Entri</h3><div className="value">{totalEntries}</div></div>
           </div>
           
           {error && <div className="card" style={{ color: 'red' }}>{error}</div>}
@@ -194,21 +198,7 @@ export default function App() {
                 </ResponsiveContainer>
               )}
             </div>
-            {/* KARTU AI INSIGHT */}
-            <div className="card" style={{ gridColumn: '1 / -1' }}> {/* Biar memakan 1 baris penuh */}
-              <div className="entries-header">
-                <h2>🤖 Analisis AI Mingguan</h2>
-                <button className="btn btn-primary" onClick={fetchAiInsight} disabled={aiLoading}>
-                  {aiLoading ? '⏳ Menganalisis...' : '✨ Minta Analisis'}
-                </button>
-              </div>
-              {aiLoading && <div className="loading">AI sedang membaca data...</div>}
-              {aiInsight && !aiLoading && (
-                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#374151' }}>
-                  {aiInsight}
-                </div>
-              )}
-            </div>
+
             <div className="card">
               <h2>Jumlah Sampah per Lokasi (Kg)</h2>
               {loading ? <div className="loading">Memuat...</div> : locationData.length === 0 ? <p>Belum ada data (Kg)</p> : (
@@ -222,7 +212,8 @@ export default function App() {
                 </ResponsiveContainer>
               )}
             </div>
-          <div className="card">
+
+            <div className="card">
               <h2>Jumlah Sampah per Lokasi (Karung/Bag/Bucket)</h2>
               {loading ? <div className="loading">Memuat...</div> : locationVolumeData.length === 0 ? <p>Belum ada data volume</p> : (
                 <ResponsiveContainer width="100%" height={250}>
@@ -235,11 +226,27 @@ export default function App() {
                 </ResponsiveContainer>
               )}
             </div>
+
+            {/* KARTU AI INSIGHT */}
+            <div className="card" style={{ gridColumn: '1 / -1' }}>
+              <div className="entries-header">
+                <h2>🤖 Analisis AI Mingguan</h2>
+                <button className="btn btn-primary" onClick={fetchAiInsight} disabled={aiLoading}>
+                  {aiLoading ? '⏳ Menganalisis...' : '✨ Minta Analisis'}
+                </button>
+              </div>
+              {aiLoading && <div className="loading">AI sedang membaca data...</div>}
+              {aiInsight && !aiLoading && (
+                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#374151' }}>
+                  {aiInsight}
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
-           
-      {/* ENTRIES TAB (KOLOM GABUNGAN) */}
+
+      {/* ENTRIES TAB */}
       {activeTab === 'entries' && (
         <div className="card">
           <div className="entries-header">
@@ -268,8 +275,7 @@ export default function App() {
                     <th>Tanggal</th>
                     <th>Lokasi</th>
                     <th>Tipe Sampah</th>
-                    {/* KOLOM GABUNGAN JUMLAH + SATUAN */}
-                    <th>Total Kuantitas</th> 
+                    <th>Total Kuantitas</th>
                     <th>Petugas</th>
                   </tr>
                 </thead>
@@ -309,10 +315,16 @@ export default function App() {
             
             <div className="form-group">
               <label>Tipe Sampah</label>
-              <select name="waste_type_id" value={form.waste_type_id} onChange={handleInputChange} required>
-                <option value="">Pilih Tipe</option>
-                {wasteTypes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-              </select>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <select name="waste_type_id" value={form.waste_type_id} onChange={handleInputChange} required style={{ flex: 1 }}>
+                  <option value="">Pilih Tipe</option>
+                  {wasteTypes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                </select>
+                <input type="file" id="cameraInput" accept="image/*" capture="environment" onChange={handleScanSampah} style={{ display: 'none' }} />
+                <button type="button" className="btn btn-primary" onClick={() => document.getElementById('cameraInput').click()} disabled={scanLoading} style={{ whiteSpace: 'nowrap', padding: '0.6rem' }}>
+                  {scanLoading ? '⏳' : '📸 Scan'}
+                </button>
+              </div>
             </div>
 
             <div className="form-group">
