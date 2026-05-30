@@ -21,6 +21,13 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
 
+  // State untuk Login Opsi 3
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null); // Menyimpan data user yang login
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
   const locations = [
     { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'RT 03' },
     { id: 'loc4', name: 'RT 04' }, { id: 'loc5', name: 'RT 05' }, { id: 'loc6', name: 'RT 06' },
@@ -50,6 +57,41 @@ export default function App() {
 
   const handleInputChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsLoggedIn(true);
+        setLoggedInUser(data.user); // Simpan data user (id, name, role)
+        setForm({ ...form, collected_by_id: data.user.name }); // Auto-isi nama petugas!
+        showToast(`✅ Login berhasil! Selamat datang, ${data.user.name}.`);
+        setLoginUsername('');
+        setLoginPassword('');
+      } else {
+        showToast(`❌ ${data.message}`);
+      }
+    } catch (err) {
+      showToast('❌ Gagal menghubungi server');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setLoggedInUser(null);
+    setForm({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
+    showToast('🔒 Berhasil logout.');
+    setActiveTab('dashboard');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -60,7 +102,8 @@ export default function App() {
       });
       if (res.ok) {
         showToast('✅ Data berhasil disimpan!');
-        setForm({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: '', collection_date: '', collection_time: '', notes: '' });
+        // Reset form, tapi pertahankan nama petugas yang login
+        setForm({ location_id: '', waste_type_id: '', quantity: '', unit: 'kg', collected_by_id: loggedInUser.name, collection_date: '', collection_time: '', notes: '' });
         fetchData();
       } else { showToast('❌ Gagal menyimpan data'); }
     } catch (err) { showToast('❌ Error koneksi'); }
@@ -151,7 +194,13 @@ export default function App() {
             <p>Karang Taruna Unit 05 Subang Jaya</p>
           </div>
         </div>
-        <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>Admin: Fadhil</div>
+        {/* Info User Login */}
+        {isLoggedIn && loggedInUser && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>👤 {loggedInUser.name}</span>
+            <button onClick={handleLogout} className="btn btn-danger" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>Logout</button>
+          </div>
+        )}
       </div>
 
       <div className="tabs">
@@ -215,7 +264,6 @@ export default function App() {
               )}
             </div>
 
-            {/* KARTU AI INSIGHT (SUDAH DIPERBAIKI) */}
             <div className="card" style={{ gridColumn: '1 / -1' }}>
               <div className="entries-header">
                 <h2>🤖 Analisis AI Mingguan</h2>
@@ -288,66 +336,87 @@ export default function App() {
         </div>
       )}
 
-      {/* INPUT TAB */}
+      {/* INPUT TAB (PROTEKSI LOGIN OPSI 3) */}
       {activeTab === 'input' && (
         <div className="card">
-          <h2>Tambah Data Baru</h2>
-          <form onSubmit={handleSubmit} className="form-grid">
-            <div className="form-group">
-              <label>Lokasi</label>
-              <select name="location_id" value={form.location_id} onChange={handleInputChange} required>
-                <option value="">Pilih Lokasi</option>
-                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            </div>
-            
-            <div className="form-group">
-              <label>Tipe Sampah</label>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <select name="waste_type_id" value={form.waste_type_id} onChange={handleInputChange} required style={{ flex: 1 }}>
-                  <option value="">Pilih Tipe</option>
-                  {wasteTypes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-                <input type="file" id="cameraInput" accept="image/*" capture="environment" onChange={handleScanSampah} style={{ display: 'none' }} />
-                <button type="button" className="btn btn-primary" onClick={() => document.getElementById('cameraInput').click()} disabled={scanLoading} style={{ whiteSpace: 'nowrap', padding: '0.6rem' }}>
-                  {scanLoading ? '⏳' : '📸 Scan'}
+          {!isLoggedIn ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <h2>🔒 Area Khusus Petugas</h2>
+              <p style={{ color: '#6b7280', margin: '1rem 0' }}>Gunakan akun petugas untuk menginput data.</p>
+              <form onSubmit={handleLogin} style={{ maxWidth: '300px', margin: '0 auto' }}>
+                <div className="form-group">
+                  <input type="text" value={loginUsername} onChange={(e) => setLoginUsername(e.target.value)} required placeholder="Username (misal: budi)" />
+                </div>
+                <div className="form-group">
+                  <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required placeholder="Password" />
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loginLoading} style={{ width: '100%' }}>
+                  {loginLoading ? '⏳ Memverifikasi...' : '🔓 Login'}
                 </button>
-              </div>
+              </form>
             </div>
+          ) : (
+            <>
+              <h2>Tambah Data Baru</h2>
+              <form onSubmit={handleSubmit} className="form-grid">
+                <div className="form-group">
+                  <label>Lokasi</label>
+                  <select name="location_id" value={form.location_id} onChange={handleInputChange} required>
+                    <option value="">Pilih Lokasi</option>
+                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                </div>
+                
+                <div className="form-group">
+                  <label>Tipe Sampah</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <select name="waste_type_id" value={form.waste_type_id} onChange={handleInputChange} required style={{ flex: 1 }}>
+                      <option value="">Pilih Tipe</option>
+                      {wasteTypes.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" onChange={handleScanSampah} style={{ display: 'none' }} />
+                    <button type="button" className="btn btn-primary" onClick={() => document.getElementById('cameraInput').click()} disabled={scanLoading} style={{ whiteSpace: 'nowrap', padding: '0.6rem' }}>
+                      {scanLoading ? '⏳' : '📸 Scan'}
+                    </button>
+                  </div>
+                </div>
 
-            <div className="form-group">
-              <label>Jumlah</label>
-              <input type="number" name="quantity" value={form.quantity} onChange={handleInputChange} required min="0" step="0.1" />
-            </div>
+                <div className="form-group">
+                  <label>Jumlah</label>
+                  <input type="number" name="quantity" value={form.quantity} onChange={handleInputChange} required min="0" step="0.1" />
+                </div>
 
-            <div className="form-group">
-              <label>Satuan</label>
-              <select name="unit" value={form.unit} onChange={handleInputChange}>
-                <option value="kg">Kg</option>
-                <option value="karung">Karung</option>
-                <option value="bucket">Bucket</option>
-              </select>
-            </div>
+                <div className="form-group">
+                  <label>Satuan</label>
+                  <select name="unit" value={form.unit} onChange={handleInputChange}>
+                    <option value="kg">Kg</option>
+                    <option value="karung">Karung</option>
+                    <option value="bucket">Bucket</option>
+                  </select>
+                </div>
 
-            <div className="form-group">
-              <label>Nama Petugas</label>
-              <input type="text" name="collected_by_id" value={form.collected_by_id} onChange={handleInputChange} required placeholder="Tulis nama petugas..." />
-            </div>
+                {/* KOLOM PETUGAS OTOMATIS (TIDAK BISA DIUBAH) */}
+                <div className="form-group">
+                  <label>Petugas</label>
+                  <input type="text" name="collected_by_id" value={form.collected_by_id} readOnly style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }} />
+                </div>
 
-            <div className="form-group">
-              <label>Tanggal</label>
-              <input type="date" name="collection_date" value={form.collection_date} onChange={handleInputChange} required />
-            </div>
+                <div className="form-group">
+                  <label>Tanggal</label>
+                  <input type="date" name="collection_date" value={form.collection_date} onChange={handleInputChange} required />
+                </div>
 
-            <div className="form-group full">
-              <label>Catatan (Opsional)</label>
-              <textarea name="notes" value={form.notes} onChange={handleInputChange} rows="2" placeholder="Contoh: Sampah menumpuk di selokan"></textarea>
-            </div>
+                <div className="form-group full">
+                  <label>Catatan (Opsional)</label>
+                  <textarea name="notes" value={form.notes} onChange={handleInputChange} rows="2" placeholder="Contoh: Sampah menumpuk di selokan"></textarea>
+                </div>
 
-            <div className="form-group full" style={{ marginTop: '0.5rem' }}>
-              <button type="submit" className="btn btn-primary">Simpan Data</button>
-            </div>
-          </form>
+                <div className="form-group full" style={{ marginTop: '0.5rem' }}>
+                  <button type="submit" className="btn btn-primary">Simpan Data</button>
+                </div>
+              </form>
+            </>
+          )}
         </div>
       )}
     </div>
