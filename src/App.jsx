@@ -16,6 +16,8 @@ export default function App() {
   const [filterWasteType, setFilterWasteType] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [toast, setToast] = useState('');
+    const [aiInsight, setAiInsight] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   const locations = [
     { id: 'loc1', name: 'RT 01' }, { id: 'loc2', name: 'RT 02' }, { id: 'loc3', name: 'RT 03' },
@@ -69,6 +71,19 @@ export default function App() {
   };
 
   const handleExportCSV = () => {
+      const fetchAiInsight = async () => {
+    try {
+      setAiLoading(true);
+      setAiInsight('');
+      const res = await fetch(`${API_URL}/api/ai-insight`);
+      const data = await res.json();
+      setAiInsight(data.insight);
+    } catch (err) {
+      setAiInsight("Gagal menghubungi AI.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
     if (filteredCollections.length === 0) { showToast('❌ Tidak ada data untuk di-export'); return; }
     const headers = ['Tanggal', 'Lokasi', 'Tipe Sampah', 'Jumlah', 'Satuan', 'Petugas', 'Catatan'];
     const csvRows = filteredCollections.map(c => [c.collection_date, c.location_name || c.location_id, c.waste_type_name || c.waste_type_id, c.quantity, c.unit, c.collector_name || c.collected_by_id, c.notes || ''].join(';'));
@@ -179,7 +194,21 @@ export default function App() {
                 </ResponsiveContainer>
               )}
             </div>
-
+            {/* KARTU AI INSIGHT */}
+            <div className="card" style={{ gridColumn: '1 / -1' }}> {/* Biar memakan 1 baris penuh */}
+              <div className="entries-header">
+                <h2>🤖 Analisis AI Mingguan</h2>
+                <button className="btn btn-primary" onClick={fetchAiInsight} disabled={aiLoading}>
+                  {aiLoading ? '⏳ Menganalisis...' : '✨ Minta Analisis'}
+                </button>
+              </div>
+              {aiLoading && <div className="loading">AI sedang membaca data...</div>}
+              {aiInsight && !aiLoading && (
+                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#374151' }}>
+                  {aiInsight}
+                </div>
+              )}
+            </div>
             <div className="card">
               <h2>Jumlah Sampah per Lokasi (Kg)</h2>
               {loading ? <div className="loading">Memuat...</div> : locationData.length === 0 ? <p>Belum ada data (Kg)</p> : (
